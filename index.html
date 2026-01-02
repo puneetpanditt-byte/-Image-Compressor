@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Image Compressor - Free Image Optimization Tool</title>
+    <meta name="description" content="Compress JPEG, PNG, and GIF images online for free. Reduce image file size while maintaining quality.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.dragover {
+            background-color: rgb(219 234 254);
+            border-color: rgb(59 130 246);
+            transform: scale(1.02);
+        }
+        .image-preview {
+            transition: all 0.3s ease;
+        }
+        .image-preview:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .comparison-slider {
+            position: relative;
+            overflow: hidden;
+        }
+        .slider-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #3b82f6;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+        .slider-handle::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: #3b82f6;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-compress text-blue-600 text-2xl"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Image Compressor</h1>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-blue-600 transition">Home</a>
+                    <a href="#features" class="text-gray-600 hover:text-blue-600 transition">Features</a>
+                    <a href="#about" class="text-gray-600 hover:text-blue-600 transition">About</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12 fade-in">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Compress Images Online for Free</h2>
+            <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                Reduce image file size while maintaining quality. Supports JPEG, PNG, and GIF formats. 
+                Upload up to 20 images and compress them instantly.
+            </p>
+        </section>
+
+        <!-- Upload Area -->
+        <section class="max-w-4xl mx-auto mb-12">
+            <div id="dropZone" class="drop-zone border-3 border-dashed border-gray-300 rounded-xl p-12 text-center bg-white hover:border-blue-400 transition cursor-pointer">
+                <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">Drop Your Files Here</h3>
+                <p class="text-gray-500 mb-4">or click to browse</p>
+                <p class="text-sm text-gray-400">Supports: JPEG, PNG, GIF • Max 20 files • Max 10MB each</p>
+                <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/gif" class="hidden">
+            </div>
+        </section>
+
+        <!-- Image Queue -->
+        <section id="imageQueue" class="max-w-6xl mx-auto mb-12 hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-images text-blue-600 mr-2"></i>
+                        Image Queue (<span id="queueCount">0</span>)
+                    </h3>
+                    <button id="clearQueue" class="text-red-500 hover:text-red-700 transition">
+                        <i class="fas fa-trash mr-2"></i>Clear All
+                    </button>
+                </div>
+                <div id="queueContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Image items will be added here dynamically -->
+                </div>
+                <div class="mt-6 text-center">
+                    <button id="compressAll" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-compress mr-2"></i>Compress All Images
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results" class="max-w-6xl mx-auto hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                        Compression Results
+                    </h3>
+                    <button id="downloadAll" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-download mr-2"></i>Download All
+                    </button>
+                </div>
+                <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Results will be added here dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="max-w-6xl mx-auto mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <i class="fas fa-bolt text-4xl text-yellow-500 mb-4"></i>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Lightning Fast</h4>
+                    <p class="text-gray-600">Compress images instantly in your browser. No upload to server required.</p>
+                </div>
+                <div class="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <i class="fas fa-shield-alt text-4xl text-green-500 mb-4"></i>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Secure & Private</h4>
+                    <p class="text-gray-600">All processing happens locally. Your images never leave your device.</p>
+                </div>
+                <div class="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <i class="fas fa-cog text-4xl text-blue-500 mb-4"></i>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Quality Control</h4>
+                    <p class="text-gray-600">Adjust compression levels to find the perfect balance between size and quality.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm p-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">About Image Compression</h3>
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-700 mb-2">Why compress images?</h4>
+                        <p class="text-gray-600">
+                            Compressed images load faster on websites, use less storage space, and reduce bandwidth usage. 
+                            This improves user experience and saves money on hosting costs.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-700 mb-2">How does it work?</h4>
+                        <p class="text-gray-600">
+                            Our tool uses advanced compression algorithms to remove unnecessary data from images while 
+                            preserving visual quality. You can adjust the compression level to find the perfect balance.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-700 mb-2">Is it safe?</h4>
+                        <p class="text-gray-600">
+                            Absolutely! All image processing happens directly in your browser using JavaScript. 
+                            Your images are never uploaded to any server, ensuring complete privacy and security.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">© 2024 Image Compressor. Free online image optimization tool.</p>
+            <p class="text-gray-400 text-sm">Compress JPEG, PNG, and GIF images instantly in your browser.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
